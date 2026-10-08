@@ -133,79 +133,53 @@ namespace laba1.Forms
 
         private void RemoveDeliveryButton_Click(object sender, EventArgs e)
         {
-            if (deliveriesListBox.SelectedIndex == -1)
+            // Исправление (hotfix): раньше адрес восстанавливался разбором строки
+            // "{Customer} - {Address} ({Status})" по символу '-', но суффикс " (Статус)"
+            // не отрезался, поэтому Address никогда не совпадал и Find() возвращал null —
+            // кнопка «Удалить» не работала. Теперь берём доставку напрямую по индексу
+            // выбранного элемента списка.
+            int index = deliveriesListBox.SelectedIndex;
+            if (index == -1)
             {
                 MessageBox.Show("Выберите доставку для удаления!");
                 return;
             }
 
-            string selectedItem = deliveriesListBox.SelectedItem.ToString();
-            string[] parts = selectedItem.Split(new[] { '-' }, StringSplitOptions.None);
+            var deliveryToRemove = deliveryManager.Deliveries[index];
 
-            if (parts.Length >= 2)
+            try
             {
-                string customerName = parts[0].Trim();
-                string addressPart = parts[1];
-                for (int i = 2; i < parts.Length - 1; i++)
-                {
-                    addressPart += "-" + parts[i];
-                }
-                string address = addressPart.Trim();
-
-                var deliveryToRemove = deliveryManager.Deliveries.Find(d => d.CustomerName == customerName && d.Address == address);
-
-                if (deliveryToRemove != null)
-                {
-                    try
-                    {
-                        deliveryManager.RemoveDelivery(deliveryToRemove);
-                        UpdateDeliveriesList();
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show(ex.Message);
-                    }
-                }
+                deliveryManager.RemoveDelivery(deliveryToRemove);
+                UpdateDeliveriesList();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
             }
         }
 
         private void UpdateStatusButton_Click(object sender, EventArgs e)
         {
-            if (deliveriesListBox.SelectedIndex == -1)
+            // Исправление (hotfix): та же причина, что и в RemoveDeliveryButton_Click —
+            // берём доставку по индексу, а не разбором текста элемента списка.
+            int index = deliveriesListBox.SelectedIndex;
+            if (index == -1)
             {
                 MessageBox.Show("Выберите доставку для обновления статуса!");
                 return;
             }
 
-            string selectedItem = deliveriesListBox.SelectedItem.ToString();
-            string[] parts = selectedItem.Split(new[] { '-' }, StringSplitOptions.None);
+            var deliveryToUpdate = deliveryManager.Deliveries[index];
+            DeliveryStatus newStatus = (DeliveryStatus)Enum.Parse(typeof(DeliveryStatus), statusComboBox.SelectedItem.ToString());
 
-            if (parts.Length >= 2)
+            try
             {
-                string customerName = parts[0].Trim();
-                string addressPart = parts[1];
-                for (int i = 2; i < parts.Length - 1; i++)
-                {
-                    addressPart += "-" + parts[i];
-                }
-                string address = addressPart.Trim();
-
-                var deliveryToUpdate = deliveryManager.Deliveries.Find(d => d.CustomerName == customerName && d.Address == address);
-
-                if (deliveryToUpdate != null)
-                {
-                    DeliveryStatus newStatus = (DeliveryStatus)Enum.Parse(typeof(DeliveryStatus), statusComboBox.SelectedItem.ToString());
-
-                    try
-                    {
-                        deliveryManager.UpdateDeliveryStatus(deliveryToUpdate, newStatus);
-                        UpdateDeliveriesList();
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show(ex.Message);
-                    }
-                }
+                deliveryManager.UpdateDeliveryStatus(deliveryToUpdate, newStatus);
+                UpdateDeliveriesList();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
             }
         }
     }
