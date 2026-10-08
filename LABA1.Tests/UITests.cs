@@ -5,9 +5,6 @@ using laba1.Forms;
 
 namespace laba1.Tests
 {
-    // На этом этапе (лаб. №2) элементы управления в DeliveryForm ещё не
-    // имеют свойства Name (оно будет добавлено в лаб. №6 для FlaUI),
-    // поэтому поиск ведётся по тексту кнопки.
     [TestClass]
     public class UITests
     {
@@ -41,6 +38,14 @@ namespace laba1.Tests
         public void UpdateStatusButton_IsPresent()
         {
             var button = FindControl<Button>("Обновить статус");
+            Assert.IsNotNull(button);
+        }
+
+        [TestMethod]
+        public void EditDeliveryButton_IsPresent()
+        {
+            // Кнопка, добавленная в лаб. №5
+            var button = FindControl<Button>("Редактировать");
             Assert.IsNotNull(button);
         }
 

@@ -88,5 +88,22 @@ namespace laba1.Tests
             Assert.AreEqual(1, newManager.Deliveries.Count);
             Assert.AreEqual("Кузнецова А.В.", newManager.Deliveries.First().CustomerName);
         }
+
+        [TestMethod]
+        public void Save_PersistsDirectlyEditedDelivery()
+        {
+            // Проверка метода Save(), добавленного в лаб. №5 для функции редактирования
+            var delivery = new Delivery("Волкова Е.С.", "г. Тверь, ул. Советская, 4",
+                DateTime.Now.AddDays(3));
+            _manager.AddDelivery(delivery);
+
+            delivery.Address = "г. Тверь, ул. Советская, 40";
+            _manager.Save();
+
+            var reloaded = new DeliveryManager();
+            var found = reloaded.Deliveries.Find(d => d.CustomerName == "Волкова Е.С.");
+            Assert.IsNotNull(found);
+            Assert.AreEqual("г. Тверь, ул. Советская, 40", found!.Address);
+        }
     }
 }
