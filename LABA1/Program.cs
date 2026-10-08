@@ -16,5 +16,4 @@ namespace laba1
             Application.Run(new DeliveryForm());
         }
     }
-
 }
