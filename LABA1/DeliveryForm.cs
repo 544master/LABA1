@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 using laba1.Models;
@@ -16,7 +17,15 @@ namespace laba1.Forms
         private Button addDeliveryButton;
         private Button removeDeliveryButton;
         private Button updateStatusButton;
+        private Button editDeliveryButton;
         private ListBox deliveriesListBox;
+
+        private static readonly Dictionary<string, DeliveryStatus> StatusByDisplayText = new()
+        {
+            { "Новый", DeliveryStatus.Новый },
+            { "В пути", DeliveryStatus.В_пути },
+            { "Доставлен", DeliveryStatus.Доставлен }
+        };
 
         public DeliveryForm()
         {
@@ -24,7 +33,6 @@ namespace laba1.Forms
             this.Width = 600;
             this.Height = 500;
 
-            // Инициализация элементов управления
             customerNameTextBox = new TextBox
             {
                 Location = new Point(10, 10),
@@ -75,14 +83,24 @@ namespace laba1.Forms
             };
             updateStatusButton.Click += UpdateStatusButton_Click;
 
+            // Новая функция (лаб. №5): кнопка "Редактировать"
+            editDeliveryButton = new Button
+            {
+                Location = new Point(350, 70),
+                Text = "Редактировать",
+                Width = 110
+            };
+            editDeliveryButton.Click += EditDeliveryButton_Click;
+
             deliveriesListBox = new ListBox
             {
                 Location = new Point(10, 100),
                 Width = 560,
                 Height = 250
             };
+            // Предзаполнение полей при выборе доставки (лаб. №5)
+            deliveriesListBox.SelectedIndexChanged += DeliveriesListBox_SelectedIndexChanged;
 
-            // Добавление на форму
             this.Controls.Add(customerNameTextBox);
             this.Controls.Add(addressTextBox);
             this.Controls.Add(deliveryDatePicker);
@@ -90,9 +108,9 @@ namespace laba1.Forms
             this.Controls.Add(addDeliveryButton);
             this.Controls.Add(removeDeliveryButton);
             this.Controls.Add(updateStatusButton);
+            this.Controls.Add(editDeliveryButton);
             this.Controls.Add(deliveriesListBox);
 
-            // Инициализация менеджера
             deliveryManager = new DeliveryManager();
             UpdateDeliveriesList();
         }
@@ -115,6 +133,12 @@ namespace laba1.Forms
                 return;
             }
 
+            if (deliveryDatePicker.Value.Date < DateTime.Now.Date)
+            {
+                MessageBox.Show("Дата доставки не может быть в прошлом!");
+                return;
+            }
+
             DateTime deliveryDate = deliveryDatePicker.Value;
             Delivery newDelivery = new Delivery(customerNameTextBox.Text, addressTextBox.Text, deliveryDate);
 
@@ -133,11 +157,6 @@ namespace laba1.Forms
 
         private void RemoveDeliveryButton_Click(object sender, EventArgs e)
         {
-            // Исправление (hotfix): раньше адрес восстанавливался разбором строки
-            // "{Customer} - {Address} ({Status})" по символу '-', но суффикс " (Статус)"
-            // не отрезался, поэтому Address никогда не совпадал и Find() возвращал null —
-            // кнопка «Удалить» не работала. Теперь берём доставку напрямую по индексу
-            // выбранного элемента списка.
             int index = deliveriesListBox.SelectedIndex;
             if (index == -1)
             {
@@ -160,8 +179,6 @@ namespace laba1.Forms
 
         private void UpdateStatusButton_Click(object sender, EventArgs e)
         {
-            // Исправление (hotfix): та же причина, что и в RemoveDeliveryButton_Click —
-            // берём доставку по индексу, а не разбором текста элемента списка.
             int index = deliveriesListBox.SelectedIndex;
             if (index == -1)
             {
@@ -169,8 +186,14 @@ namespace laba1.Forms
                 return;
             }
 
+            if (statusComboBox.SelectedItem == null)
+            {
+                MessageBox.Show("Выберите новый статус!");
+                return;
+            }
+
             var deliveryToUpdate = deliveryManager.Deliveries[index];
-            DeliveryStatus newStatus = (DeliveryStatus)Enum.Parse(typeof(DeliveryStatus), statusComboBox.SelectedItem.ToString());
+            var newStatus = StatusByDisplayText[statusComboBox.SelectedItem.ToString()];
 
             try
             {
@@ -181,6 +204,51 @@ namespace laba1.Forms
             {
                 MessageBox.Show(ex.Message);
             }
+        }
+
+        // Новая функция (лаб. №5): редактирование данных доставки
+        private void DeliveriesListBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            int index = deliveriesListBox.SelectedIndex;
+            if (index == -1) return;
+
+            var delivery = deliveryManager.Deliveries[index];
+            customerNameTextBox.Text = delivery.CustomerName;
+            addressTextBox.Text = delivery.Address;
+            deliveryDatePicker.Value = delivery.DeliveryDate;
+        }
+
+        private void EditDeliveryButton_Click(object sender, EventArgs e)
+        {
+            int index = deliveriesListBox.SelectedIndex;
+            if (index == -1)
+            {
+                MessageBox.Show("Выберите доставку для редактирования!");
+                return;
+            }
+
+            if (string.IsNullOrEmpty(customerNameTextBox.Text) ||
+                string.IsNullOrEmpty(addressTextBox.Text))
+            {
+                MessageBox.Show("Заполните все поля!");
+                return;
+            }
+
+            if (deliveryDatePicker.Value.Date < DateTime.Now.Date)
+            {
+                MessageBox.Show("Дата доставки не может быть в прошлом!");
+                return;
+            }
+
+            var delivery = deliveryManager.Deliveries[index];
+            delivery.CustomerName = customerNameTextBox.Text;
+            delivery.Address = addressTextBox.Text;
+            delivery.DeliveryDate = deliveryDatePicker.Value;
+
+            deliveryManager.Save();
+            UpdateDeliveriesList();
+            MessageBox.Show("Доставка отредактирована!", "Успех",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 }
